@@ -1,0 +1,20 @@
+{
+  "name": "yireo/admin-check-max-input-vars",
+  "version": "1.0.0",
+  "description": "N/A",
+  "type": "magento2-module",
+  "require": {
+    "magento/framework": "*"
+  },
+  "license": [
+    ""
+  ],
+  "autoload": {
+    "files": [
+      "registration.php"
+    ],
+    "psr-4": {
+      "Yireo\\AdminCheckMaxInputVars\\": ""
+    }
+  }
+}
