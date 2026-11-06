@@ -1,1 +1,7 @@
-{}
+{
+    "module_name": "Yireo_AdminCheckMaxInputVars",
+    "composer_name": "yireo/admin-check-max-input-vars",
+    "sequence": [
+        "Magento_Backend"
+    ]
+}
