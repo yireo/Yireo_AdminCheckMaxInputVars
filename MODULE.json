@@ -3,5 +3,7 @@
     "composer_name": "yireo/admin-check-max-input-vars",
     "sequence": [
         "Magento_Backend"
-    ]
+    ],
+    "phpcs_severity": "8",
+    "phpstan_level": "1"
 }
