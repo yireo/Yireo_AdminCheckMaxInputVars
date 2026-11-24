@@ -44,7 +44,7 @@ class RequestValidatorConfigTest extends TestCase
     public function testPluginIsRegisteredOnBackendValidator(): void
     {
         $pluginList = Bootstrap::getObjectManager()->get(PluginListInterface::class);
-        $plugin = $pluginList->get(BackendValidator::class, 'Yireo_AdminCheckMaxInputVars::validateInputLimits');
+        $plugin = $pluginList->getPlugin(BackendValidator::class, 'Yireo_AdminCheckMaxInputVars::validateInputLimits');
         $this->assertInstanceOf(BackendValidatorPlugin::class, $plugin);
     }
 }

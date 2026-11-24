@@ -10,6 +10,9 @@ use Magento\Framework\App\Request\InvalidRequestException;
 use Magento\Framework\App\RequestInterface;
 use Yireo\AdminCheckMaxInputVars\Validator\RequestValidator;
 
+/**
+ * @SuppressWarnings("PHPMD.UnusedFormalParameter")
+ */
 class BackendValidatorPlugin
 {
     /**
@@ -29,7 +32,6 @@ class BackendValidatorPlugin
      * @param ActionInterface $action
      * @return void
      * @throws InvalidRequestException
-     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
     public function afterValidate(
         BackendValidator $subject,
