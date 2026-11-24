@@ -7,6 +7,7 @@ namespace Yireo\AdminCheckMaxInputVars\Test\Integration;
 use Magento\Backend\App\Request\BackendValidator;
 use Magento\Framework\App\Request\CompositeValidator;
 use Magento\Framework\App\Request\ValidatorInterface;
+use Magento\Framework\Interception\DefinitionInterface;
 use Magento\Framework\Interception\PluginListInterface;
 use Magento\Framework\Module\ModuleListInterface;
 use Magento\TestFramework\Helper\Bootstrap;
@@ -44,7 +45,10 @@ class RequestValidatorConfigTest extends TestCase
     public function testPluginIsRegisteredOnBackendValidator(): void
     {
         $pluginList = Bootstrap::getObjectManager()->get(PluginListInterface::class);
-        $plugin = $pluginList->getPlugin(BackendValidator::class, 'Yireo_AdminCheckMaxInputVars::validateInputLimits');
+        $pluginCode = 'Yireo_AdminCheckMaxInputVars::validateInputLimits';
+        $next = $pluginList->getNext(BackendValidator::class, 'validate');
+        $this->assertContains($pluginCode, (array)($next[DefinitionInterface::LISTENER_AFTER] ?? []));
+        $plugin = $pluginList->getPlugin(BackendValidator::class, $pluginCode);
         $this->assertInstanceOf(BackendValidatorPlugin::class, $plugin);
     }
 }
