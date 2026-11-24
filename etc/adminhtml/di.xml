@@ -1,11 +1,8 @@
 <?xml version="1.0"?>
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
-    <virtualType name="RequestValidator" type="Magento\Framework\App\Request\CompositeValidator">
-        <arguments>
-            <argument name="validators" xsi:type="array">
-                <item name="yireo_admin_check_max_input_vars" xsi:type="object" sortOrder="1000">Yireo\AdminCheckMaxInputVars\Validator\RequestValidator</item>
-            </argument>
-        </arguments>
-    </virtualType>
+    <type name="Magento\Backend\App\Request\BackendValidator">
+        <plugin name="Yireo_AdminCheckMaxInputVars::validateInputLimits"
+                type="Yireo\AdminCheckMaxInputVars\Plugin\BackendValidatorPlugin"/>
+    </type>
 </config>
