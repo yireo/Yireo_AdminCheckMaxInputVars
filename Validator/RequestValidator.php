@@ -4,123 +4,90 @@ declare(strict_types=1);
 
 namespace Yireo\AdminCheckMaxInputVars\Validator;
 
+use Magento\Backend\Model\Auth;
 use Magento\Framework\App\ActionInterface;
+use Magento\Framework\App\Request\Http as HttpRequest;
 use Magento\Framework\App\Request\InvalidRequestException;
 use Magento\Framework\App\Request\ValidatorInterface;
 use Magento\Framework\App\RequestInterface;
+use Magento\Framework\App\Response\RedirectInterface;
 use Magento\Framework\Controller\Result\JsonFactory;
-use Magento\Framework\Message\ManagerInterface;
+use Magento\Framework\Controller\Result\RedirectFactory;
+use Magento\Framework\Phrase;
 use Yireo\AdminCheckMaxInputVars\Exception\ValidationException;
 
 class RequestValidator implements ValidatorInterface
 {
     /**
-     * @var Validator
-     */
-    private $validator;
-
-    /**
-     * @var JsonFactory
-     */
-    private $resultJsonFactory;
-
-    /**
-     * @var ManagerInterface
-     */
-    private $messageManager;
-
-    /**
-     * RequestValidator constructor.
      * @param Validator $validator
      * @param JsonFactory $resultJsonFactory
-     * @param ManagerInterface $messageManager
+     * @param RedirectFactory $resultRedirectFactory
+     * @param RedirectInterface $redirect
+     * @param Auth $auth
      */
     public function __construct(
-        Validator $validator,
-        JsonFactory $resultJsonFactory,
-        ManagerInterface $messageManager
+        private readonly Validator $validator,
+        private readonly JsonFactory $resultJsonFactory,
+        private readonly RedirectFactory $resultRedirectFactory,
+        private readonly RedirectInterface $redirect,
+        private readonly Auth $auth
     ) {
-        $this->validator = $validator;
-        $this->resultJsonFactory = $resultJsonFactory;
-        $this->messageManager = $messageManager;
     }
 
     /**
+     * Block admin POST requests that reach the PHP input limits
+     *
      * @param RequestInterface $request
      * @param ActionInterface $action
-     * @throws ValidationException
+     * @return void
+     * @throws InvalidRequestException
      */
     public function validate(RequestInterface $request, ActionInterface $action): void
+    {
+        if (!$request instanceof HttpRequest || !$request->isPost()) {
+            return;
+        }
+
+        if (!$this->auth->isLoggedIn()) {
+            return;
+        }
+
+        $messages = $this->getMessages($request);
+        if (empty($messages)) {
+            return;
+        }
+
+        if ($request->isAjax()) {
+            $data = ['error' => true, 'message' => implode(', ', array_map('strval', $messages))];
+            throw new InvalidRequestException($this->resultJsonFactory->create()->setData($data), $messages);
+        }
+
+        $result = $this->resultRedirectFactory->create()->setUrl($this->redirect->getRefererUrl());
+        throw new InvalidRequestException($result, $messages);
+    }
+
+    /**
+     * Collect the messages of all failing checks
+     *
+     * @param HttpRequest $request
+     * @return Phrase[]
+     */
+    private function getMessages(HttpRequest $request): array
     {
         $messages = [];
 
         try {
             $this->validator->handleMaxInputVars($request);
         } catch (ValidationException $validationException) {
-            $messages[] = $validationException->getMessage();
+            $messages[] = __('%1', $validationException->getMessage());
         }
 
         try {
             $this->validator->handleInputNestingLevel($request);
         } catch (ValidationException $validationException) {
-            $messages[] = $validationException->getMessage();
+            $messages[] = __('%1', $validationException->getMessage());
         }
 
-        if (empty($messages)) {
-            return;
-        }
-
-        if ($this->handleAjaxCalls($request, $action, $messages)) {
-            return;
-        }
-
-        if ($this->handleMessages($request, $action, $messages)) {
-            return;
-        }
-
-        $this->handleOtherCalls($messages);
-    }
-
-    /**
-     * @param RequestInterface $request
-     * @param ActionInterface $action
-     * @param array $messages
-     * @return false
-     * @throws InvalidRequestException
-     */
-    private function handleAjaxCalls(RequestInterface $request, ActionInterface $action, array $messages)
-    {
-        if (!$request->isAjax()) {
-            return false;
-        }
-
-        $data = ['error' => true, 'message' => implode(', ', $messages)];
-        $result = $this->resultJsonFactory->create()->setData($data);
-        throw new InvalidRequestException($result, $messages);
-    }
-
-    /**
-     * @param array $messages
-     * @return bool
-     */
-    private function handleMessages(RequestInterface $request, ActionInterface $action, array $messages)
-    {
-        $allowedActions = ['save'];
-        if (!in_array($request->getActionName(), $allowedActions)) {
-            return false;
-        }
-
-        foreach ($messages as $message) {
-            $this->messageManager->addWarningMessage($message);
-        }
-
-        return true;
-    }
-
-    /**
-     * @param array $messages
-     */
-    private function handleOtherCalls(array $messages)
-    {
+        return $messages;
     }
 }

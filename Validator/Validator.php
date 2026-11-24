@@ -4,8 +4,7 @@ declare(strict_types=1);
 
 namespace Yireo\AdminCheckMaxInputVars\Validator;
 
-use Magento\Framework\App\RequestInterface;
-use Magento\Framework\Message\ManagerInterface;
+use Magento\Framework\App\Request\Http as HttpRequest;
 use RecursiveArrayIterator;
 use RecursiveIteratorIterator;
 use Yireo\AdminCheckMaxInputVars\Exception\ValidationException;
@@ -13,49 +12,82 @@ use Yireo\AdminCheckMaxInputVars\Exception\ValidationException;
 class Validator
 {
     /**
-     * @param RequestInterface $request
+     * Throw an exception when the POST data reaches the PHP max_input_vars limit
+     *
+     * @param HttpRequest $request
+     * @return void
+     * @throws ValidationException
      */
-    public function handleMaxInputVars(RequestInterface $request)
+    public function handleMaxInputVars(HttpRequest $request): void
     {
-        $currentInputVars = $this->countTerminals((array)$request->getPost());
+        $currentInputVars = $this->countTerminals($request->getPost()->toArray());
         $maxInputVars = $this->getMaxInputVars();
-        if ($currentInputVars >= $maxInputVars) {
+        if ($maxInputVars > 0 && $currentInputVars >= $maxInputVars) {
             $msg = 'Increase the PHP value "max_input_vars". Current value %1 is too low.';
             throw new ValidationException(__($msg, $maxInputVars));
         }
     }
 
     /**
-     * @param RequestInterface $request
+     * Throw an exception when the POST data reaches the PHP max_input_nesting_level limit
+     *
+     * @param HttpRequest $request
+     * @return void
+     * @throws ValidationException
      */
-    public function handleInputNestingLevel(RequestInterface $request)
+    public function handleInputNestingLevel(HttpRequest $request): void
     {
         $maxInputNestingLevel = $this->getMaxInputNestingLevel();
-        $currentInputNestingLevel = $this->getArrayDepth((array)$request->getPost());
-        if ($currentInputNestingLevel >= $maxInputNestingLevel) {
-            $msg = 'Increase the PHP value "max_input_nesting_level". Current value %s is too low.';
-            throw new ValidationException(__($msg, $currentInputNestingLevel));
+        $currentInputNestingLevel = $this->getArrayDepth($request->getPost()->toArray());
+        if ($maxInputNestingLevel > 0 && $currentInputNestingLevel >= $maxInputNestingLevel) {
+            $msg = 'Increase the PHP value "max_input_nesting_level". Current value %1 is too low.';
+            throw new ValidationException(__($msg, $maxInputNestingLevel));
         }
     }
 
     /**
-     * @param $value
+     * Get the PHP max_input_vars value
+     *
      * @return int
      */
-    private function countTerminals($value): int
+    protected function getMaxInputVars(): int
     {
-        return is_array($value)
-            ? array_reduce(
-                $value,
-                function ($carry, $item) {
-                    return $carry + $this->countTerminals($item);
-                },
-                0
-            )
-            : 1;
+        return (int)ini_get('max_input_vars');
     }
 
     /**
+     * Get the PHP max_input_nesting_level value
+     *
+     * @return int
+     */
+    protected function getMaxInputNestingLevel(): int
+    {
+        return (int)ini_get('max_input_nesting_level');
+    }
+
+    /**
+     * Count all non-array values
+     *
+     * @param mixed $value
+     * @return int
+     */
+    private function countTerminals(mixed $value): int
+    {
+        if (!is_array($value)) {
+            return 1;
+        }
+
+        $count = 0;
+        foreach ($value as $item) {
+            $count += $this->countTerminals($item);
+        }
+
+        return $count;
+    }
+
+    /**
+     * Get the maximum nesting depth of an array
+     *
      * @param array $array
      * @return int
      */
@@ -64,27 +96,10 @@ class Validator
         $depth = 0;
         $iteratorIterator = new RecursiveIteratorIterator(new RecursiveArrayIterator($array));
 
-        foreach ($iteratorIterator as $iterator) {
-            $currentDepth = (int)$iteratorIterator->getDepth();
-            $depth = $currentDepth > $depth ? $currentDepth : $depth;
+        foreach ($iteratorIterator as $ignored) {
+            $depth = max($depth, (int)$iteratorIterator->getDepth());
         }
 
         return $depth;
-    }
-
-    /**
-     * @return int
-     */
-    private function getMaxInputVars(): int
-    {
-        return (int)ini_get('max_input_vars');
-    }
-
-    /**
-     * @return int
-     */
-    private function getMaxInputNestingLevel(): int
-    {
-        return (int)ini_get('max_input_nesting_level');
     }
 }
