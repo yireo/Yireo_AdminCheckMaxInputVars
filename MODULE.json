@@ -5,5 +5,27 @@
         "Magento_Backend"
     ],
     "phpcs_severity": "1",
-    "phpstan_level": "5"
+    "phpstan_level": "5",
+    "php_versions": [
+        "8.1",
+        "8.2",
+        "8.3",
+        "8.4"
+    ],
+    "skip_magento_versions": [],
+    "skip_css_utils": false,
+    "modules": [
+        "Magento_Backend",
+        "Magento_Csp",
+        "Magento_Directory",
+        "Magento_Store",
+        "Magento_Theme"
+    ],
+    "components": [],
+    "config": [],
+    "tests": {
+        "unit": 12,
+        "integration": 3,
+        "functional": 0
+    }
 }
